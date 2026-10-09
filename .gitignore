@@ -1,0 +1,12 @@
+.env
+.venv/
+__pycache__/
+.pytest_cache/
+data/
+downloads/
+*.pyc
+test-results/
+node_modules/
+frontend/playwright-report/
+app/static/assets/
+app/static/index.html
