@@ -167,7 +167,12 @@ function Dashboard({ logout }: { logout: () => void }) {
               yt-dlp {system.data?.version || ""}
             </span>
             <span className="avatar" title="Your private workspace">
-              S
+              <img
+                src="/static/branding/yoink-mark.svg"
+                alt="Yoink"
+                width="20"
+                height="20"
+              />
             </span>
           </div>
         </header>

@@ -37,7 +37,7 @@ def create_app(settings=None):
         store.db.close()
 
     app = FastAPI(
-        title="Still — yt-dlp", lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None
+        title="Yoink — yt-dlp", lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None
     )
     app.state.store, app.state.engine = store, engine
 
@@ -75,7 +75,7 @@ def create_app(settings=None):
         return response
 
     async def authenticated(request: Request):
-        token = request.cookies.get("still_session", "")
+        token = request.cookies.get("yoink_session", "")
         if sessions.get(token, 0) <= time.time():
             sessions.pop(token, None)
             raise HTTPException(401, "Please sign in")
@@ -107,7 +107,7 @@ def create_app(settings=None):
         token = secrets.token_urlsafe(48)
         sessions[token] = now + settings.session_hours * 3600
         response.set_cookie(
-            "still_session",
+            "yoink_session",
             token,
             httponly=True,
             secure=settings.secure_cookie,
@@ -118,9 +118,9 @@ def create_app(settings=None):
 
     @app.post("/api/logout")
     async def logout(request: Request, response: Response):
-        sessions.pop(request.cookies.get("still_session", ""), None)
+        sessions.pop(request.cookies.get("yoink_session", ""), None)
         response.delete_cookie(
-            "still_session", secure=settings.secure_cookie, httponly=True, samesite="strict"
+            "yoink_session", secure=settings.secure_cookie, httponly=True, samesite="strict"
         )
         return {"ok": True}
 

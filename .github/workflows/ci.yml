@@ -1,13 +1,13 @@
-name: Verify Still
+name: Verify Yoink
 on: [push, pull_request]
 
 jobs:
   app:
     runs-on: ubuntu-latest
     env:
-      APP_PASSWORD: still-browser-test-password
-      DATA_DIR: /tmp/still-ci/data
-      DOWNLOAD_DIR: /tmp/still-ci/downloads
+      APP_PASSWORD: yoink-browser-test-password
+      DATA_DIR: /tmp/yoink-ci/data
+      DOWNLOAD_DIR: /tmp/yoink-ci/downloads
       UPDATE_YTDLP: "false"
     steps:
       - uses: actions/checkout@v4
@@ -29,12 +29,12 @@ jobs:
         working-directory: frontend
       - name: Start test server
         run: |
-          uvicorn app.main:create_app --factory --host 127.0.0.1 --port 8080 > /tmp/still-ci-server.log 2>&1 &
+          uvicorn app.main:create_app --factory --host 127.0.0.1 --port 8080 > /tmp/yoink-ci-server.log 2>&1 &
           for i in $(seq 1 30); do
             if curl --fail --silent http://127.0.0.1:8080/healthz; then exit 0; fi
             sleep 1
           done
-          cat /tmp/still-ci-server.log
+          cat /tmp/yoink-ci-server.log
           exit 1
       - run: npm test
         working-directory: frontend
@@ -54,21 +54,21 @@ jobs:
         with:
           context: .
           load: true
-          tags: still-ytdlp:ci
+          tags: yoink-ytdlp:ci
       - name: Check container startup and authentication
         run: |
-          docker run -d --name still-ci -p 127.0.0.1:8081:8080 \
-            -e APP_PASSWORD=still-container-test-password -e UPDATE_YTDLP=false still-ytdlp:ci
+          docker run -d --name yoink-ci -p 127.0.0.1:8081:8080 \
+            -e APP_PASSWORD=yoink-container-test-password -e UPDATE_YTDLP=false yoink-ytdlp:ci
           for i in $(seq 1 30); do
             if curl --fail --silent http://127.0.0.1:8081/healthz; then break; fi
             sleep 1
           done
           curl --fail http://127.0.0.1:8081/
           test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8081/api/jobs)" = "401"
-          curl --fail -c /tmp/still-cookies -H 'Content-Type: application/json' \
-            -d '{"password":"still-container-test-password"}' http://127.0.0.1:8081/api/login
-          curl --fail -b /tmp/still-cookies http://127.0.0.1:8081/api/system
-          docker exec still-ci python -c "from pathlib import Path; s=Path('/proc/1/status').read_text(); uid=next(line.split()[1] for line in s.splitlines() if line.startswith('Uid:')); assert uid == '1000', uid"
+          curl --fail -c /tmp/yoink-cookies -H 'Content-Type: application/json' \
+            -d '{"password":"yoink-container-test-password"}' http://127.0.0.1:8081/api/login
+          curl --fail -b /tmp/yoink-cookies http://127.0.0.1:8081/api/system
+          docker exec yoink-ci python -c "from pathlib import Path; s=Path('/proc/1/status').read_text(); uid=next(line.split()[1] for line in s.splitlines() if line.startswith('Uid:')); assert uid == '1000', uid"
       - name: Container logs
         if: always()
-        run: docker logs still-ci || true
+        run: docker logs yoink-ci || true

@@ -19,4 +19,4 @@ if [ ! -f .env ]; then
         python -c 'import pathlib,sys; p=pathlib.Path("/workspace/.env"); password=sys.stdin.read(); q=password.replace("\\", "\\\\").replace("\x27", "\\\x27"); p.write_text(p.read_text().replace("APP_PASSWORD=\x27change-this-password\x27", "APP_PASSWORD=\x27"+q+"\x27")); p.chmod(0o600)'
 fi
 docker compose up -d --build
-echo 'Still is starting. Open http://YOUR_SERVER_IP:8080 (or your configured PORT).'
+echo 'Yoink is starting. Open http://YOUR_SERVER_IP:8080 (or your configured PORT).'

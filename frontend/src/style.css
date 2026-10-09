@@ -194,29 +194,22 @@ summary::-webkit-details-marker {
   width: fit-content;
   line-height: 1;
 }
-.brand-period {
-  color: var(--accent);
-  margin-left: -11px;
+.brand-logo {
+  display: block;
+  width: 143px;
+  height: 40px;
 }
-.brand-mark {
-  display: flex;
-  align-items: flex-end;
-  gap: 3px;
-  width: 30px;
-  height: 29px;
+.brand-symbol {
+  display: none;
+  width: 32px;
+  height: 32px;
 }
-.brand-mark i {
-  width: 6px;
-  border-radius: 3px;
-  background: var(--accent);
-  height: 19px;
+.avatar img {
+  display: block;
+  width: 20px;
+  height: 20px;
 }
-.brand-mark i:nth-child(2) {
-  height: 29px;
-}
-.brand-mark i:nth-child(3) {
-  height: 24px;
-}
+
 .eyebrow {
   font-size: 11px;
   letter-spacing: 2px;
@@ -2555,24 +2548,13 @@ details[open] > summary > .chevron {
     font-size: 0;
     gap: 0;
   }
-  .sidebar > .brand > .brand-period {
+  .sidebar > .brand .brand-logo {
     display: none;
   }
-  .brand-mark {
-    width: 27px;
-    height: 26px;
-    gap: 3px;
+  .sidebar > .brand .brand-symbol {
+    display: block;
   }
-  .brand-mark i {
-    width: 6px;
-    height: 17px;
-  }
-  .brand-mark i:nth-child(2) {
-    height: 26px;
-  }
-  .brand-mark i:nth-child(3) {
-    height: 21px;
-  }
+
   .workspace-label {
     display: none;
   }
@@ -3134,9 +3116,6 @@ details[open] > summary > .chevron {
   .login-art > .brand {
     font-size: 28px;
     gap: 10px;
-  }
-  .login-art > .brand .brand-period {
-    margin-left: -9px;
   }
   .login-message {
     padding: 32px 0 8px;

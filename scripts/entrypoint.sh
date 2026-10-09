@@ -21,5 +21,5 @@ fi
 export HOME=/tmp
 umask 077
 python -c 'import os; from pathlib import Path; [p.mkdir(parents=True, exist_ok=True) for p in (Path("/data"),Path("/downloads"))]; assert os.access("/data",os.W_OK) and os.access("/downloads",os.W_OK), "Mounts must be writable by PUID/PGID"'
-echo "Starting Still with yt-dlp $(python -m yt_dlp --version)"
+echo "Starting Yoink with yt-dlp $(python -m yt_dlp --version)"
 exec uvicorn app.main:create_app --factory --host 0.0.0.0 --port 8080 --no-proxy-headers

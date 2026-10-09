@@ -1,0 +1,24 @@
+{
+  "name": "Yoink",
+  "short_name": "Yoink",
+  "description": "Grab it. Keep it. A private yt-dlp web UI.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#101116",
+  "theme_color": "#101116",
+  "icons": [
+    {
+      "src": "/static/branding/yoink-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/branding/yoink-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

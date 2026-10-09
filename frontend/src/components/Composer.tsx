@@ -47,7 +47,9 @@ const presetKeys = [
 function loadPresets(): Preset[] {
   try {
     const parsed: unknown = JSON.parse(
-      localStorage.getItem("still-presets") || "[]",
+      localStorage.getItem("yoink-presets") ||
+        localStorage.getItem("still-presets") ||
+        "[]",
     );
     if (!Array.isArray(parsed)) return [];
     return parsed
@@ -318,7 +320,7 @@ export function Composer({
   }
   function persist(next: Preset[]) {
     try {
-      localStorage.setItem("still-presets", JSON.stringify(next));
+      localStorage.setItem("yoink-presets", JSON.stringify(next));
       setPresets(next);
       return true;
     } catch {

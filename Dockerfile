@@ -12,7 +12,7 @@ WORKDIR /app
 COPY --from=javascript /usr/local/bin/node /usr/local/bin/node
 RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg gosu ca-certificates \
     && rm -rf /var/lib/apt/lists/* \
-    && groupadd --gid 1000 still && useradd --uid 1000 --gid still --create-home still \
+    && groupadd --gid 1000 yoink && useradd --uid 1000 --gid yoink --create-home yoink \
     && mkdir /data /downloads
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt \

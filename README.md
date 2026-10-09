@@ -1,4 +1,12 @@
-# Still
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="frontend/public/branding/yoink-logo.svg">
+    <img src="frontend/public/branding/yoink-logo-light.svg" alt="Yoink" width="286" height="80">
+  </picture>
+</p>
+
+<h1 align="center">Yoink</h1>
+<p align="center"><strong>Grab it. Keep it.</strong></p>
 
 A private, Docker-based **yt-dlp web app** for your home server. A clean React interface for saving videos, audio, and playlists directly to your server.
 
@@ -31,6 +39,27 @@ Open **http://YOUR_SERVER_IP:8080** and sign in with that password. The first bu
 Alternatively, `sh scripts/setup.sh` prompts for the password, writes `.env`, and starts Compose. The helper requires an interactive terminal and uses the official Python Docker image to quote the password safely. If `.env` already exists, it preserves it.
 
 On Windows, use `Copy-Item .env.example .env` instead of `cp`, edit the password, then run the same Compose command in Docker Desktop’s Linux container mode.
+
+## Deploy with Coolify
+
+Select **Docker Compose** when connecting this repository:
+
+| Coolify setting | Value |
+| --- | --- |
+| Base Directory | `/` |
+| Docker Compose Location | `/compose.coolify.yaml` |
+| Service | `yoink` |
+| Domain / target port | `https://yoink.example.com:8080` |
+
+The `:8080` suffix tells Coolify which container port to route to; visitors use your normal HTTPS domain without that port. Leave Raw Compose mode disabled so Coolify manages proxy routing.
+
+In Coolify's **Environment Variables**, set `APP_PASSWORD` to your password (at least 12 characters). The Coolify definition reads these variables directly; no `.env` file needs to be committed. It defaults to secure cookies for HTTPS. Set `COOKIE_SECURE=false` if serving over plain HTTP.
+
+Downloads are bind-mounted to **`/data/yoink/downloads` on your server** by default. Set `DOWNLOAD_PATH` to another absolute host path if desired, for example `/mnt/media/yoink`. The queue database is kept in a persistent Docker volume mounted at `/data`. Check the parsed Persistent Storage before the first deployment.
+
+Deploy after pushing this file and the Dockerfile to your selected branch. The regular `compose.yaml` remains available for direct LAN installation.
+
+[Coolify's official Compose guide](https://coolify.io/docs/applications/builds/docker-compose)
 
 ## What you get
 
@@ -126,7 +155,7 @@ The entrypoint changes ownership of the **mount roots only** to `PUID:PGID`, the
 
 ## Reverse proxy and HTTPS
 
-For remote access, put Still behind your existing HTTPS reverse proxy or VPN. Set `COOKIE_SECURE=true` when using HTTPS. Configure the proxy to preserve the `Host` header. If it rewrites Host, also set `APP_ORIGIN` to your public URL.
+For remote access, put Yoink behind your existing HTTPS reverse proxy or VPN. Set `COOKIE_SECURE=true` when using HTTPS. Configure the proxy to preserve the `Host` header. If it rewrites Host, also set `APP_ORIGIN` to your public URL.
 
 Example Caddy configuration:
 
@@ -180,7 +209,7 @@ Run backend tests:
 python -m pytest -q
 ```
 
-Run browser tests against a locally running app, using a dedicated test environment and the same password as `TEST_APP_PASSWORD` (the test default is `still-browser-test-password`):
+Run browser tests against a locally running app, using a dedicated test environment and the same password as `TEST_APP_PASSWORD` (the test default is `yoink-browser-test-password`):
 
 ```sh
 cd frontend
@@ -209,3 +238,18 @@ compose.yaml              # Single-container installation
 ## Verification in this workspace
 
 The React production build, backend tests, and Chromium browser flows were run locally, including MP3 conversion through FFmpeg and desktop/mobile screenshot inspection. Docker Engine is not installed in the development workspace, so an actual container build/start has **not** been executed here.
+
+## Logo assets
+
+The original vector logo combines a **Y** with a download arrow. The app, favicon, and README use the same assets. The README uses relative repository paths and automatically selects a light or dark wordmark on GitHub.
+
+- [Dark-background wordmark](frontend/public/branding/yoink-logo.svg)
+- [Light-background wordmark](frontend/public/branding/yoink-logo-light.svg)
+- [Transparent symbol](frontend/public/branding/yoink-mark.svg)
+- [App icon](frontend/public/branding/yoink-icon.svg)
+- [512px app icon](frontend/public/branding/yoink-icon-512.png)
+- [PNG wordmark](frontend/public/branding/yoink-logo.png)
+
+The editable originals are SVG. Regenerate the PNG exports with `npm run brand:assets` in `frontend/`.
+
+After pushing to `abdlx/Yoink` on `main`, the raw dark wordmark is available at `https://raw.githubusercontent.com/abdlx/Yoink/main/frontend/public/branding/yoink-logo.svg`.

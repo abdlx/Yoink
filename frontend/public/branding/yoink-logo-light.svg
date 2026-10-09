@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 286 80" fill="none">
+  <title>Yoink</title>
+  <g stroke="#8063c1" stroke-linecap="round" stroke-linejoin="round" transform="translate(2 8)">
+    <path d="m16 14 16 16 16-16M32 30v20" stroke-width="10"/>
+    <path d="m22 40 10 10 10-10" stroke-width="9"/>
+  </g>
+  <g stroke="#201a30" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="m94 29 14 20 14-20m-14 20-11 17"/>
+    <circle cx="148" cy="43" r="14"/>
+    <path d="M178 36v21m20 0V30m0 12c0-18 26-18 26 0v15m19-36v36m20-27-19 16 21 12"/>
+  </g>
+  <circle cx="178" cy="23" r="4.5" fill="#8063c1"/>
+</svg>

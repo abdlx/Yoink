@@ -69,7 +69,7 @@ export function Login({ onLogin }: { onLogin: () => void }) {
             </p>
           )}
           <button className="button primary" disabled={busy}>
-            {busy ? "Unlocking…" : "Unlock Still"}
+            {busy ? "Unlocking…" : "Unlock Yoink"}
             <ArrowRight />
           </button>
           <div className="login-note">

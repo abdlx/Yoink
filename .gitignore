@@ -10,3 +10,5 @@ node_modules/
 frontend/playwright-report/
 app/static/assets/
 app/static/index.html
+app/static/branding/
+app/static/site.webmanifest

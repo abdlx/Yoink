@@ -1,0 +1,36 @@
+# Coolify: select Docker Compose, base directory /, location /compose.coolify.yaml.
+# Set APP_PASSWORD in Coolify's Environment Variables before deploying.
+services:
+  yoink:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    init: true
+    expose:
+      - "8080"
+    environment:
+      APP_PASSWORD: ${APP_PASSWORD:?Set APP_PASSWORD in Coolify}
+      DATA_DIR: /data
+      DOWNLOAD_DIR: /downloads
+      UPDATE_YTDLP: ${UPDATE_YTDLP:-true}
+      MAX_CONCURRENT_DOWNLOADS: ${MAX_CONCURRENT_DOWNLOADS:-2}
+      SESSION_HOURS: ${SESSION_HOURS:-24}
+      COOKIE_SECURE: ${COOKIE_SECURE:-true}
+      APP_ORIGIN: ${APP_ORIGIN:-}
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+    volumes:
+      - yoink-data:/data
+      - ${DOWNLOAD_PATH:-/data/yoink/downloads}:/downloads
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  yoink-data:

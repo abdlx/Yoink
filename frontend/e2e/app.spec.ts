@@ -4,7 +4,7 @@ import type { AddressInfo } from "node:net";
 
 let server: Server;
 let mediaUrl: string;
-const password = process.env.TEST_APP_PASSWORD || "still-browser-test-password";
+const password = process.env.TEST_APP_PASSWORD || "yoink-browser-test-password";
 test.beforeAll(async () => {
   // A real one-second audio file served locally; no external extractor availability required.
   const pcm = Buffer.alloc(16000);
@@ -51,10 +51,10 @@ test("password protection, previews, advanced controls, real audio download, and
     fullPage: true,
   });
   await page.getByLabel("Password", { exact: true }).fill("wrong-password");
-  await page.getByRole("button", { name: "Unlock Still" }).click();
+  await page.getByRole("button", { name: "Unlock Yoink" }).click();
   await expect(page.getByRole("alert")).toContainText("Incorrect password");
   await page.getByLabel("Password", { exact: true }).fill(password);
-  await page.getByRole("button", { name: "Unlock Still" }).click();
+  await page.getByRole("button", { name: "Unlock Yoink" }).click();
   await expect(
     page.getByRole("heading", { name: "Your next find, saved." }),
   ).toBeVisible();
@@ -99,7 +99,7 @@ test("password protection, previews, advanced controls, real audio download, and
     .last()
     .click();
   const stored = await page.evaluate(() =>
-    localStorage.getItem("still-presets"),
+    localStorage.getItem("yoink-presets"),
   );
   expect(stored).not.toContain("https://example.com/watch");
   expect(stored).not.toContain("--write-description");
@@ -174,7 +174,7 @@ test("phone layout stays within viewport and supports options", async ({
     fullPage: true,
   });
   await page.getByLabel("Password", { exact: true }).fill(password);
-  await page.getByRole("button", { name: "Unlock Still" }).click();
+  await page.getByRole("button", { name: "Unlock Yoink" }).click();
   await expect(
     page.getByRole("heading", { name: "Your next find, saved." }),
   ).toBeVisible();

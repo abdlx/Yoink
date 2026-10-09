@@ -3,13 +3,21 @@ import { X, type LucideIcon } from "lucide-react";
 
 export function Brand() {
   return (
-    <a className="brand" href="#downloads" aria-label="Still home">
-      <span className="brand-mark">
-        <i />
-        <i />
-        <i />
-      </span>
-      still<span className="brand-period">.</span>
+    <a className="brand" href="#downloads" aria-label="Yoink home">
+      <img
+        className="brand-logo"
+        src="/static/branding/yoink-logo.svg"
+        alt="Yoink"
+        width="143"
+        height="40"
+      />
+      <img
+        className="brand-symbol"
+        src="/static/branding/yoink-mark.svg"
+        alt="Yoink"
+        width="32"
+        height="32"
+      />
     </a>
   );
 }

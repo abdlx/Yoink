@@ -1,7 +1,7 @@
 services:
-  still:
+  yoink:
     build: .
-    image: still-ytdlp:local
+    image: yoink-ytdlp:local
     restart: unless-stopped
     init: true
     ports:
