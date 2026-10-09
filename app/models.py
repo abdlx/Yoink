@@ -44,7 +44,7 @@ class Options(BaseModel):
         value = value.strip().replace("\\", "/")
         if (
             value.startswith("/")
-            or any(p in {"..", "."} for p in value.split("/"))
+            or any(p.lower() in {"..", ".", ".yoink-trash"} for p in value.split("/"))
             or ":" in value
             or "\x00" in value
         ):
@@ -84,3 +84,9 @@ class DownloadRequest(BaseModel):
 
 class LoginRequest(BaseModel):
     password: str = Field(max_length=1000)
+
+
+class LibraryAction(BaseModel):
+    action: Literal["rename", "trash", "restore", "delete"]
+    paths: list[str] = Field(min_length=1, max_length=200)
+    name: str = Field(default="", max_length=240)

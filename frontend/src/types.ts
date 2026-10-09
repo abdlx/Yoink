@@ -89,6 +89,7 @@ export interface Job {
   error: string;
   logs: string[];
   files: string[];
+  trashed_files?: string[];
   item: string;
 }
 export interface MediaSummary {
@@ -139,6 +140,7 @@ export interface LibraryFile {
   size: number;
   modified: number;
   ext: string;
+  thumbnail?: string;
 }
 export interface OptionEntry {
   flags: string[];

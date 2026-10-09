@@ -56,7 +56,7 @@ test("password protection, previews, advanced controls, real audio download, and
   await page.getByLabel("Password", { exact: true }).fill(password);
   await page.getByRole("button", { name: "Unlock Yoink" }).click();
   await expect(
-    page.getByRole("heading", { name: "Your next find, saved." }),
+    page.getByRole("heading", { name: "Save something good." }),
   ).toBeVisible();
   await page.screenshot({
     path: "test-results/downloads-desktop.png",
@@ -143,6 +143,85 @@ test("password protection, previews, advanced controls, real audio download, and
     page.getByRole("link", { name: "Download file", exact: true }),
   ).toHaveAttribute("href", /download=true/);
   await page.getByRole("button", { name: "Close dialog" }).click();
+  const savedJob = (await (await page.request.get("/api/jobs")).json()).find(
+    (job: { id: string }) => job.id === created.ids[0],
+  );
+  const originalPath: string = savedJob.files.find((path: string) =>
+    path.endsWith(".mp3"),
+  );
+  const originalName = originalPath.split("/").pop()!;
+  const testFolder = originalPath.slice(0, originalPath.lastIndexOf("/"));
+  await page.getByLabel("Search files").fill(testFolder);
+  await page
+    .getByLabel("Filter media type", { exact: true })
+    .selectOption("audio");
+  await expect(page.locator(".library-card")).toHaveCount(1);
+  await page.getByRole("button", { name: "List view", exact: true }).click();
+  await expect(page.locator(".library-list")).toBeVisible();
+  await page
+    .getByRole("button", { name: `Rename ${originalName}`, exact: true })
+    .click();
+  await page
+    .getByLabel("Filename", { exact: true })
+    .fill("Quiet afternoon.mp3");
+  await page.getByRole("button", { name: "Save name", exact: true }).click();
+  await expect(page.getByRole("dialog")).not.toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Quiet afternoon.mp3", exact: true }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Grid view", exact: true }).click();
+  await page.screenshot({
+    path: "test-results/library-desktop.png",
+    fullPage: true,
+  });
+  await page
+    .getByRole("checkbox", { name: "Select Quiet afternoon.mp3", exact: true })
+    .check();
+  await page
+    .getByRole("button", { name: "Move to trash", exact: true })
+    .click();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Move to trash", exact: true })
+    .click();
+  await expect(page.locator(".library-card")).toHaveCount(0);
+  await page.getByRole("button", { name: "Trash", exact: true }).click();
+  await expect(page.locator(".trash-row")).toContainText("Quiet afternoon.mp3");
+  await page
+    .getByRole("button", {
+      name: `Restore ${testFolder}/Quiet afternoon.mp3`,
+      exact: true,
+    })
+    .click();
+  await expect(page.locator(".trash-row")).toHaveCount(0);
+  await page.getByRole("button", { name: "Files", exact: true }).click();
+  await expect(page.locator(".library-card")).toHaveCount(1);
+  await page.getByRole("link", { name: "History", exact: true }).click();
+  await page.getByLabel("Search history").fill(mediaUrl);
+  await page.getByRole("button", { name: "Completed", exact: true }).click();
+  await expect(page.locator(".queue-item")).toHaveCount(1);
+  await page.screenshot({
+    path: "test-results/history-desktop.png",
+    fullPage: true,
+  });
+  await page
+    .getByRole("checkbox", { name: "Select visible history", exact: true })
+    .check();
+  await page
+    .getByRole("button", { name: "Remove history", exact: true })
+    .click();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Remove history", exact: true })
+    .click();
+  await expect(page.locator(".queue-item")).toHaveCount(0);
+  expect(
+    (
+      await page.request.get(
+        `/api/files/${encodeURIComponent(testFolder).replaceAll("%2F", "/")}/Quiet%20afternoon.mp3`,
+      )
+    ).status(),
+  ).toBe(200);
   await page.getByRole("link", { name: "Option reference" }).click();
   await page.getByLabel("Search yt-dlp options").fill("referer");
   await expect(page.getByText("--referer", { exact: true })).toBeVisible();
@@ -157,11 +236,84 @@ test("password protection, previews, advanced controls, real audio download, and
     path: "test-results/settings-desktop.png",
     fullPage: true,
   });
-  await page.getByRole("button", { name: "Sign out" }).click();
+  await page.getByRole("button", { name: "Sign out" }).first().click();
   await expect(
     page.getByRole("heading", { name: "Your private media space." }),
   ).toBeVisible();
   expect(errors).toEqual([]);
+});
+
+test("permanent deletion requires explicit confirmation and only removes the selected trash item", async ({
+  page,
+}) => {
+  await page.request.post("/api/login", { data: { password } });
+  const folder = `Trash test/${Date.now()}`;
+  const response = await page.request.post("/api/jobs", {
+    data: {
+      urls: [mediaUrl],
+      options: {
+        folder,
+        filename: "disposable.%(ext)s",
+        embed_metadata: false,
+      },
+    },
+  });
+  expect(response.status()).toBe(201);
+  const { ids } = await response.json();
+  await expect
+    .poll(
+      async () =>
+        (await (await page.request.get("/api/jobs")).json()).find(
+          (job: { id: string }) => job.id === ids[0],
+        )?.status,
+      { timeout: 30_000 },
+    )
+    .toBe("completed");
+  await page.goto("/#library");
+  await page.getByLabel("Search files").fill(folder);
+  await expect(page.locator(".library-card")).toHaveCount(1);
+  await page
+    .getByRole("button", { name: "Move disposable.wav to trash", exact: true })
+    .click();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Move to trash", exact: true })
+    .click();
+  await expect(page.locator(".library-card")).toHaveCount(0);
+  await page.getByRole("button", { name: "Trash", exact: true }).click();
+  await page
+    .getByRole("button", {
+      name: `Permanently delete ${folder}/disposable.wav`,
+      exact: true,
+    })
+    .click();
+  const dialog = page.getByRole("dialog");
+  await expect(
+    dialog.getByRole("button", { name: "Delete forever", exact: true }),
+  ).toBeDisabled();
+  await dialog.getByRole("button", { name: "Keep files", exact: true }).click();
+  await expect(page.locator(".trash-row")).toHaveCount(1);
+  await page
+    .getByRole("button", {
+      name: `Permanently delete ${folder}/disposable.wav`,
+      exact: true,
+    })
+    .click();
+  await page
+    .getByLabel("Type DELETE to confirm", { exact: true })
+    .fill("DELETE");
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Delete forever", exact: true })
+    .click();
+  await expect(page.locator(".trash-row")).toHaveCount(0);
+  const files = await (await page.request.get("/api/library")).json();
+  expect(
+    files.some(
+      (file: { path: string }) => file.path === `${folder}/disposable.wav`,
+    ),
+  ).toBe(false);
+  await page.request.delete(`/api/jobs/${ids[0]}`, { data: {} });
 });
 
 test("phone layout stays within viewport and supports options", async ({
@@ -176,7 +328,7 @@ test("phone layout stays within viewport and supports options", async ({
   await page.getByLabel("Password", { exact: true }).fill(password);
   await page.getByRole("button", { name: "Unlock Yoink" }).click();
   await expect(
-    page.getByRole("heading", { name: "Your next find, saved." }),
+    page.getByRole("heading", { name: "Save something good." }),
   ).toBeVisible();
   expect(
     await page.evaluate(
@@ -199,4 +351,53 @@ test("phone layout stays within viewport and supports options", async ({
   });
   await page.getByRole("button", { name: "Apply options" }).click();
   await expect(page.getByRole("dialog")).not.toBeVisible();
+  const nav = page.getByRole("navigation", { name: "Mobile navigation" });
+  await expect(nav).toBeVisible();
+  expect(await nav.evaluate((el) => getComputedStyle(el).position)).toBe(
+    "fixed",
+  );
+  for (const view of ["Library", "History", "Settings"]) {
+    await nav.getByRole("link", { name: view, exact: true }).click();
+    await expect(
+      page.getByRole("heading", {
+        name: `${view === "Settings" ? "Server settings" : view}.`,
+        exact: true,
+      }),
+    ).toBeVisible();
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+    await page.screenshot({
+      path: `test-results/${view.toLowerCase()}-mobile.png`,
+      fullPage: true,
+    });
+  }
+  await page
+    .getByRole("button", { name: /Explore every yt-dlp option/ })
+    .click();
+  await expect(page.getByLabel("Search yt-dlp options")).toBeVisible();
+  await nav.getByRole("link", { name: "Downloads", exact: true }).click();
+  await expect(page.getByLabel("Referer", { exact: true })).not.toBeVisible();
+  for (const width of [320, 520, 720, 768, 1024]) {
+    await page.setViewportSize({ width, height: 844 });
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+      `Downloads overflow at ${width}px`,
+    ).toBe(true);
+    await page.goto("/#library");
+    await expect(
+      page.getByRole("heading", { name: "Library.", exact: true }),
+    ).toBeVisible();
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+      `Library overflow at ${width}px`,
+    ).toBe(true);
+    await page.goto("/#downloads");
+  }
 });

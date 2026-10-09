@@ -5,19 +5,44 @@ import {
   Folder,
   HardDrive,
   LoaderCircle,
+  BookOpen,
+  LogOut,
 } from "lucide-react";
 import { bytes } from "../api";
 import type { SystemInfo } from "../types";
 import { Heading } from "./UI";
 
-export function Settings({ system }: { system?: SystemInfo }) {
+export function Settings({
+  system,
+  browse,
+  logout,
+}: {
+  system?: SystemInfo;
+  browse: () => void;
+  logout: () => void;
+}) {
   return (
     <>
       <Heading
-        eyebrow="BEHIND THE SCENES"
-        title="Small setup. Big possibilities"
+        eyebrow="YOUR WORKSPACE"
+        title="Server settings"
         description="Your server’s essentials. Configuration lives in your .env file."
-      />
+      >
+        <button className="button secondary" onClick={logout}>
+          <LogOut />
+          Sign out
+        </button>
+      </Heading>
+      <button className="panel reference-shortcut" onClick={browse}>
+        <BookOpen />
+        <span>
+          <strong>Explore every yt-dlp option</strong>
+          <small>
+            Search the option reference and add flags to a download.
+          </small>
+        </span>
+        <ArrowUpRight />
+      </button>
       {system ? (
         <div className="settings-grid">
           <div className="panel stat-card">
@@ -76,7 +101,7 @@ export function Settings({ system }: { system?: SystemInfo }) {
         </div>
       )}
       <div className="panel settings-help">
-        <h2>Make yourself at home.</h2>
+        <h2>Server configuration</h2>
         <p>
           Change settings in <code>.env</code>, then run{" "}
           <code>docker compose up -d</code> to apply them.
@@ -102,8 +127,9 @@ export function Settings({ system }: { system?: SystemInfo }) {
           </dd>
           <dt>COOKIE_SECURE / APP_ORIGIN</dt>
           <dd>
-            Set secure cookies when using HTTPS. Set the public origin if your
-            reverse proxy changes the Host header.
+            Set secure cookies when using HTTPS. When using an HTTPS reverse
+            proxy or Coolify, set APP_ORIGIN to the exact browser-facing URL,
+            without the internal container port or a path.
           </dd>
         </dl>
         <a

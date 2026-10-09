@@ -15,7 +15,8 @@ from yt_dlp.version import __version__ as ytdlp_version
 
 from .config import Settings
 from .engine import Engine
-from .models import DownloadRequest, LoginRequest
+from .library import TRASH, LibraryManager
+from .models import DownloadRequest, LibraryAction, LoginRequest
 from .options import build_arguments, catalog
 from .store import Store
 
@@ -26,6 +27,7 @@ def create_app(settings=None):
     settings = settings or Settings()
     store = Store(settings.data / "queue.sqlite3")
     engine = Engine(settings, store)
+    media = LibraryManager(settings.downloads, store, engine)
     sessions = {}
     attempts = OrderedDict()
 
@@ -155,7 +157,11 @@ def create_app(settings=None):
 
     @app.get("/api/jobs", dependencies=[Depends(authenticated)])
     async def jobs():
-        return store.list()
+        trashed = {entry["path"] for entry in store.trash_list()}
+        jobs = store.list()
+        for job in jobs:
+            job["trashed_files"] = [path for path in job["files"] if path in trashed]
+        return jobs
 
     @app.post("/api/jobs", status_code=201, dependencies=[Depends(authenticated)])
     async def add_jobs(body: DownloadRequest):
@@ -220,10 +226,17 @@ def create_app(settings=None):
 
     @app.get("/api/library", dependencies=[Depends(authenticated)])
     async def library():
+        thumbnails = {}
+        for job in reversed(store.list()):
+            if job["thumbnail"]:
+                thumbnails.update({path: job["thumbnail"] for path in job["files"]})
+
         def scan():
             files = []
             for root, directories, names in os.walk(settings.downloads, followlinks=False):
-                directories[:] = [d for d in directories if not Path(root, d).is_symlink()]
+                directories[:] = [
+                    d for d in directories if d.lower() != TRASH and not Path(root, d).is_symlink()
+                ]
                 for name in names:
                     path = Path(root, name)
                     if (
@@ -241,6 +254,9 @@ def create_app(settings=None):
                                 "size": stat.st_size,
                                 "modified": stat.st_mtime,
                                 "ext": path.suffix[1:].lower(),
+                                "thumbnail": thumbnails.get(
+                                    path.relative_to(settings.downloads).as_posix(), ""
+                                ),
                             }
                         )
                     except OSError:
@@ -249,10 +265,43 @@ def create_app(settings=None):
 
         return await asyncio.to_thread(scan)
 
+    @app.get("/api/library/trash", dependencies=[Depends(authenticated)])
+    async def trash():
+        return store.trash_list()
+
+    @app.post("/api/library/manage", dependencies=[Depends(authenticated)])
+    async def manage_files(body: LibraryAction):
+        if body.action == "rename" and len(body.paths) != 1:
+            raise HTTPException(400, "Rename one file at a time")
+        results = []
+        for relative in dict.fromkeys(body.paths):
+            try:
+                result = media.change(body.action, relative, body.name)
+                results.append({"path": relative, "result": result, "ok": True})
+            except HTTPException as exc:
+                results.append({"path": relative, "error": exc.detail, "ok": False})
+            except FileExistsError:
+                results.append(
+                    {"path": relative, "error": "A file with that name already exists", "ok": False}
+                )
+            except OSError:
+                results.append(
+                    {
+                        "path": relative,
+                        "error": "Could not move this file. Check folder permissions and hard-link support.",
+                        "ok": False,
+                    }
+                )
+        return {"results": results}
+
     @app.get("/api/files/{relative:path}", dependencies=[Depends(authenticated)])
     def file(relative: str, download: bool = False):
         path = (settings.downloads / relative).resolve()
-        if not path.is_relative_to(settings.downloads) or not path.is_file():
+        if (
+            not path.is_relative_to(settings.downloads)
+            or TRASH in {p.lower() for p in path.relative_to(settings.downloads).parts}
+            or not path.is_file()
+        ):
             raise HTTPException(404, "File not found")
         playable = {
             ".mp4",

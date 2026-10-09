@@ -19,6 +19,9 @@ class Store:
         self.db.execute(
             "UPDATE jobs SET status='queued', speed=0 WHERE status IN ('downloading','processing')"
         )
+        self.db.execute("""CREATE TABLE IF NOT EXISTS trash (
+            id TEXT PRIMARY KEY, path TEXT NOT NULL, size INTEGER NOT NULL,
+            modified REAL NOT NULL, trashed REAL NOT NULL)""")
         self.db.commit()
 
     def create(self, url, options, title="", thumbnail=""):
@@ -69,3 +72,17 @@ class Store:
     def remove(self, ident):
         self.db.execute("DELETE FROM jobs WHERE id=?", (ident,))
         self.db.commit()
+
+    def replace_file(self, old, new):
+        for row in self.db.execute("SELECT id,files FROM jobs").fetchall():
+            files = json.loads(row["files"])
+            if old in files:
+                files = (
+                    [new if f == old else f for f in files]
+                    if new
+                    else [f for f in files if f != old]
+                )
+                self.update(row["id"], files=files)
+
+    def trash_list(self):
+        return [dict(row) for row in self.db.execute("SELECT * FROM trash ORDER BY trashed DESC")]

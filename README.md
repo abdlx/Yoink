@@ -53,7 +53,7 @@ Select **Docker Compose** when connecting this repository:
 
 The `:8080` suffix tells Coolify which container port to route to; visitors use your normal HTTPS domain without that port. Leave Raw Compose mode disabled so Coolify manages proxy routing.
 
-In Coolify's **Environment Variables**, set `APP_PASSWORD` to your password (at least 12 characters). The Coolify definition reads these variables directly; no `.env` file needs to be committed. It defaults to secure cookies for HTTPS. Set `COOKIE_SECURE=false` if serving over plain HTTP.
+In Coolify's **Environment Variables**, set `APP_PASSWORD` to your password (at least 12 characters). Also set `APP_ORIGIN` to your browser-facing HTTPS URL, for example `https://yoink.example.com`, without the internal `:8080` port or a URL path. The Coolify definition reads these variables directly; no `.env` file needs to be committed. It defaults to secure cookies for HTTPS. Set `COOKIE_SECURE=false` if serving over plain HTTP.
 
 Downloads are bind-mounted to **`/data/yoink/downloads` on your server** by default. Set `DOWNLOAD_PATH` to another absolute host path if desired, for example `/mnt/media/yoink`. The queue database is kept in a persistent Docker volume mounted at `/data`. Check the parsed Persistent Storage before the first deployment.
 
@@ -64,15 +64,24 @@ Deploy after pushing this file and the Dockerfile to your selected branch. The r
 ## What you get
 
 - Password login with HTTP-only session cookies, login throttling, and cross-site request protection.
-- A responsive dark UI with a quiet main screen and advanced settings in a separate drawer.
+- A responsive dark UI with readable controls, a download overview, advanced settings in a separate drawer, and fixed bottom navigation on phones.
 - Link previews: thumbnails, title, creator, duration, available formats and subtitle languages. Playlist previews show up to the first 30 entries.
 - Video quality limits up to 4K, custom format expressions, selectable format IDs, MP4/MKV/WebM remuxing, and audio extraction to MP3/M4A/Opus/FLAC/WAV.
 - Referer, user agent, custom HTTP headers, proxies, site credentials, video passwords, and Netscape cookies.txt import. Network and extractor settings also apply when inspecting links.
 - Subtitles and automatic captions, cover art, embedded metadata, thumbnails, info JSON, download sections, SponsorBlock, playlist ranges, and download archives.
 - Persistent queue, configurable simultaneous jobs, progress/speed/ETA, postprocessing status, per-job logs, cancellation, and retries.
-- A server file library with search, browser playback, and optional download to your computer. Playback depends on your browser’s codec support; MKV and some other formats may need a local player.
+- A server file library with thumbnails when available, search, media and folder filters, sorting, grid/list views, bulk selection, rename, reversible trash, and confirmed permanent deletion. Includes browser playback and optional download to your computer. Playback depends on your browser’s codec support; MKV and some other formats may need a local player.
+- Dedicated download history with title/URL search, status and date filters, bulk retries for failed or cancelled downloads, and bulk history removal that keeps saved files.
 - Presets saved in your browser. Presets exclude network credentials, cookies, and custom arguments.
 - A searchable option reference generated from the **installed yt-dlp parser**, plus a custom arguments field for its supported CLI options. New supported options appear after updating yt-dlp.
+
+### Managing your collection
+
+**Downloads** shows active jobs and the five most recent results. **History** keeps past activity separate; removing history never deletes media. **Library** shows up to 5,000 saved files and refreshes while open. History displays the latest 1,000 jobs.
+
+Use **Rename** to change a filename; matching history links update automatically. **Trash** moves selected files into `.yoink-trash` on the download volume. Trash survives restarts, still uses disk space, and can be restored to the original folder. Restoring or renaming never overwrites an existing file. **Empty trash** and **Delete forever** require typing `DELETE` before permanently removing files.
+
+File management waits for queued or running downloads in the affected folder to finish. Moves use hard links on the download volume to avoid overwriting files; the filesystem must support hard links (normal Linux ext4, XFS, and Btrfs volumes do). Back up the queue database and download volume together to preserve trash records. No new environment variables or setup steps are needed for these features.
 
 ### Advanced arguments
 
@@ -144,7 +153,7 @@ Only `APP_PASSWORD` needs to be changed to get started. Everything else has a de
 | `UPDATE_YTDLP` | `true` | Fetch the latest official stable release on startup |
 | `SESSION_HOURS` | `24` | Session lifetime, 1–168 hours |
 | `COOKIE_SECURE` | `false` | Set to `true` when using HTTPS |
-| `APP_ORIGIN` | Unset | Public origin if the reverse proxy changes Host, e.g. `https://downloads.example.com` |
+| `APP_ORIGIN` | Unset | Exact browser-facing origin when using an HTTPS reverse proxy, e.g. `https://downloads.example.com` |
 | `PUID` / `PGID` | `1000` / `1000` | Linux user/group that own newly created media |
 
 Use single quotes around passwords containing `$`, `#`, or spaces. Docker Compose’s [.env syntax](https://docs.docker.com/compose/how-tos/environment-variables/variable-interpolation/#env-file-syntax) explains escaping.
@@ -155,7 +164,7 @@ The entrypoint changes ownership of the **mount roots only** to `PUID:PGID`, the
 
 ## Reverse proxy and HTTPS
 
-For remote access, put Yoink behind your existing HTTPS reverse proxy or VPN. Set `COOKIE_SECURE=true` when using HTTPS. Configure the proxy to preserve the `Host` header. If it rewrites Host, also set `APP_ORIGIN` to your public URL.
+For remote access, put Yoink behind your existing HTTPS reverse proxy or VPN. Set `COOKIE_SECURE=true` and `APP_ORIGIN` to your exact public URL when using HTTPS, for example `https://downloads.example.com`. The API receives plain HTTP from the proxy, so it needs the public origin for request validation even when Host is preserved. Do not include the internal container port or a URL path.
 
 Example Caddy configuration:
 

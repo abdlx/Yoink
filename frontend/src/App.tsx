@@ -12,6 +12,8 @@ import {
   Server,
   SlidersHorizontal,
   X,
+  History,
+  CircleAlert,
 } from "lucide-react";
 import { api, bytes, errorMessage } from "./api";
 import {
@@ -34,10 +36,18 @@ import { Settings } from "./components/Settings";
 const views = {
   downloads: "Downloads",
   library: "Library",
+  history: "History",
   reference: "Option reference",
   settings: "Server settings",
 };
 type View = keyof typeof views;
+const viewIcons = {
+  downloads: ArrowDownToLine,
+  library: Grid2X2,
+  history: History,
+  reference: BookOpen,
+  settings: SlidersHorizontal,
+};
 const readView = (): View => {
   const key = location.hash.slice(1);
   return key in views ? (key as View) : "downloads";
@@ -87,24 +97,29 @@ function Dashboard({ logout }: { logout: () => void }) {
     setAdvanced(true);
   }
   const count = (jobs.data || []).filter((j) => active(j.status)).length;
+  const completed = (jobs.data || []).filter(
+    (j) => j.status === "completed",
+  ).length;
+  const failed = (jobs.data || []).filter((j) => j.status === "failed").length;
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }, [view]);
   return (
     <div className="app-shell">
+      <a className="skip-link" href="#main-content">
+        Skip to content
+      </a>
       <aside className="sidebar">
         <Brand />
         <div className="workspace-label">PERSONAL WORKSPACE</div>
         <nav aria-label="Main navigation">
           {(Object.entries(views) as [View, string][]).map(
             ([key, label], index) => {
-              const Icon = [
-                ArrowDownToLine,
-                Grid2X2,
-                BookOpen,
-                SlidersHorizontal,
-              ][index];
+              const Icon = viewIcons[key];
               return (
                 <a
                   key={key}
-                  className={`nav-item ${view === key ? "active" : ""} ${index === 2 ? "nav-section-start" : ""}`}
+                  className={`nav-item ${view === key ? "active" : ""} ${index === 3 ? "nav-section-start" : ""}`}
                   href={`#${key}`}
                   aria-current={view === key ? "page" : undefined}
                 >
@@ -158,6 +173,9 @@ function Dashboard({ logout }: { logout: () => void }) {
       </aside>
       <div className="main-shell">
         <header className="topbar">
+          <div className="mobile-brand">
+            <Brand />
+          </div>
           <div className="breadcrumb">
             Workspace<span>/</span>
             <strong>{views[view]}</strong>
@@ -176,7 +194,7 @@ function Dashboard({ logout }: { logout: () => void }) {
             </span>
           </div>
         </header>
-        <main className="content">
+        <main className="content" id="main-content">
           {jobs.error && (
             <div className="connection-error" role="alert">
               Can’t reach your server. Reconnecting…{" "}
@@ -185,15 +203,57 @@ function Dashboard({ logout }: { logout: () => void }) {
           )}
           <section hidden={view !== "downloads"}>
             <Heading
-              eyebrow="COLLECT SOMETHING GOOD"
-              title="Your next find, saved"
-              description="From the internet to your own little corner of it."
+              eyebrow="YOUR PRIVATE DOWNLOADER"
+              title="Save something good"
+              description="Paste a link, choose your format, and leave the rest to your server."
             >
               <span className="quiet-badge">
                 <span className="status-dot" />
                 Saving to your server
               </span>
             </Heading>
+            <div className="download-overview">
+              <div>
+                <span className="overview-icon">
+                  <ArrowDownToLine />
+                </span>
+                <div>
+                  <strong>{count}</strong>
+                  <span>Active downloads</span>
+                </div>
+              </div>
+              <button onClick={() => navigate("history")}>
+                <span className="overview-icon completed">
+                  <Check />
+                </span>
+                <div>
+                  <strong>{completed}</strong>
+                  <span>Completed</span>
+                </div>
+              </button>
+              <button onClick={() => navigate("history")}>
+                <span
+                  className={`overview-icon ${failed ? "needs-attention" : ""}`}
+                >
+                  <CircleAlert />
+                </span>
+                <div>
+                  <strong>{failed}</strong>
+                  <span>Failed downloads</span>
+                </div>
+              </button>
+              <button onClick={() => navigate("settings")}>
+                <span className="overview-icon">
+                  <Server />
+                </span>
+                <div>
+                  <strong>
+                    {system.data ? bytes(system.data.disk_free) : "—"}
+                  </strong>
+                  <span>Server space free</span>
+                </div>
+              </button>
+            </div>
             <Composer
               options={options}
               setOptions={setOptions}
@@ -203,12 +263,15 @@ function Dashboard({ logout }: { logout: () => void }) {
               }}
               notify={setToast}
             />
-            <Queue
-              jobs={jobs.data || []}
-              loading={jobs.isPending}
-              notify={setToast}
-              play={setPlaying}
-            />
+            {view === "downloads" && (
+              <Queue
+                jobs={jobs.data || []}
+                loading={jobs.isPending}
+                notify={setToast}
+                play={setPlaying}
+                openHistory={() => navigate("history")}
+              />
+            )}
             <footer className="content-footer">
               <span>
                 <Server />
@@ -224,11 +287,62 @@ function Dashboard({ logout }: { logout: () => void }) {
               </a>
             </footer>
           </section>
-          {view === "library" && <Library play={setPlaying} />}
+          {view === "library" && (
+            <Library play={setPlaying} notify={setToast} />
+          )}
+          {view === "history" && (
+            <>
+              <Heading
+                eyebrow="DOWNLOAD ACTIVITY"
+                title="History"
+                description="Find past downloads, retry failures, and keep your workspace tidy."
+              />
+              <Queue
+                history
+                jobs={jobs.data || []}
+                loading={jobs.isPending}
+                notify={setToast}
+                play={setPlaying}
+              />
+            </>
+          )}
           {view === "reference" && <Reference add={addOption} />}
-          {view === "settings" && <Settings system={system.data} />}
+          {view === "settings" && (
+            <Settings
+              system={system.data}
+              browse={() => navigate("reference")}
+              logout={logout}
+            />
+          )}
         </main>
       </div>
+      <nav className="mobile-nav" aria-label="Mobile navigation">
+        {(["downloads", "library", "history", "settings"] as View[]).map(
+          (key) => {
+            const Icon = viewIcons[key];
+            return (
+              <a
+                key={key}
+                href={`#${key}`}
+                className={
+                  view === key || (key === "settings" && view === "reference")
+                    ? "active"
+                    : ""
+                }
+                aria-current={view === key ? "page" : undefined}
+              >
+                <span className="mobile-nav-icon">
+                  <Icon />
+                  {key === "downloads" && count > 0 && (
+                    <span className="mobile-nav-count">{count}</span>
+                  )}
+                </span>
+                <span>{key === "settings" ? "Settings" : views[key]}</span>
+              </a>
+            );
+          },
+        )}
+      </nav>
       {advanced && (
         <Advanced
           options={options}

@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useId, useRef, type ReactNode } from "react";
 import { X, type LucideIcon } from "lucide-react";
 
 export function Brand() {
@@ -35,16 +35,26 @@ export function Modal({
   subtitle?: string;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
   useEffect(() => {
     const dialog = ref.current;
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
     dialog?.showModal();
-    return () => dialog?.close();
+    return () => {
+      dialog?.close();
+      document.body.style.overflow = overflow;
+    };
   }, []);
   return (
     <dialog
       ref={ref}
       className={drawer ? "drawer" : "detail-dialog"}
-      onCancel={close}
+      aria-labelledby={titleId}
+      onCancel={(e) => {
+        e.preventDefault();
+        close();
+      }}
       onClick={(e) => {
         if (e.target === e.currentTarget) {
           const r = e.currentTarget.getBoundingClientRect();
@@ -61,7 +71,7 @@ export function Modal({
       <div className="modal-heading">
         <div>
           {subtitle && <span className="eyebrow">{subtitle}</span>}
-          <h2>{title}</h2>
+          <h2 id={titleId}>{title}</h2>
         </div>
         <button
           className="icon-button"

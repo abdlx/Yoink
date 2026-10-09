@@ -46,6 +46,23 @@ def test_password_session_and_logout(client, settings):
     assert client.get("/api/session").status_code == 401
 
 
+def test_https_proxy_origin_is_allowed_only_when_configured(settings):
+    settings.origin = "https://yoink.example.com"
+    with TestClient(create_app(settings)) as client:
+        response = client.post(
+            "/api/login",
+            json={"password": settings.password},
+            headers={"Origin": "https://yoink.example.com", "Host": "yoink.example.com"},
+        )
+        assert response.status_code == 200
+        response = client.post(
+            "/api/logout",
+            json={},
+            headers={"Origin": "https://other.example.com", "Host": "yoink.example.com"},
+        )
+        assert response.status_code == 403
+
+
 def test_csrf_and_bruteforce_protection(client, settings):
     assert (
         client.post(
