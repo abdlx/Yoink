@@ -4,6 +4,7 @@ import type { AddressInfo } from "node:net";
 
 let server: Server;
 let mediaUrl: string;
+let failRecoverable = true;
 const password = process.env.TEST_APP_PASSWORD || "yoink-browser-test-password";
 test.beforeAll(async () => {
   // A real one-second audio file served locally; no external extractor availability required.
@@ -23,7 +24,12 @@ test.beforeAll(async () => {
   wav.write("data", 36);
   wav.writeUInt32LE(pcm.length, 40);
   pcm.copy(wav, 44);
-  server = createServer((_req, res) => {
+  server = createServer((req, res) => {
+    if (req.url?.startsWith("/recoverable.wav") && failRecoverable) {
+      res.writeHead(404);
+      res.end();
+      return;
+    }
     res.setHeader("Content-Type", "audio/wav");
     res.setHeader("Content-Length", wav.length);
     res.end(wav);
@@ -243,6 +249,50 @@ test("password protection, previews, advanced controls, real audio download, and
   expect(errors).toEqual([]);
 });
 
+test("history filters failures and retries selected downloads", async ({
+  page,
+}) => {
+  await page.request.post("/api/login", { data: { password } });
+  failRecoverable = true;
+  const url = `${mediaUrl.replace("a-moment-of-quiet.wav", "recoverable.wav")}?case=${Date.now()}`;
+  const response = await page.request.post("/api/jobs", {
+    data: {
+      urls: [url],
+      options: {
+        folder: `Retry test/${Date.now()}`,
+        embed_metadata: false,
+        retries: 0,
+      },
+    },
+  });
+  expect(response.status()).toBe(201);
+  const { ids } = await response.json();
+  const status = async () =>
+    (await (await page.request.get("/api/jobs")).json()).find(
+      (job: { id: string }) => job.id === ids[0],
+    )?.status;
+  await expect.poll(status, { timeout: 30_000 }).toBe("failed");
+  await page.goto("/#history");
+  await page.getByLabel("Search history").fill(url);
+  await page.getByRole("button", { name: "Failed", exact: true }).click();
+  await page.getByLabel("History period").selectOption("7");
+  await expect(page.locator(".queue-item")).toHaveCount(1);
+  await page
+    .getByRole("checkbox", { name: "Select visible history", exact: true })
+    .check();
+  failRecoverable = false;
+  await page.getByRole("button", { name: "Retry 1", exact: true }).click();
+  await expect.poll(status, { timeout: 30_000 }).toBe("completed");
+  await expect(page.locator(".queue-item")).toHaveCount(0);
+  await page.getByRole("button", { name: "Completed", exact: true }).click();
+  await expect(page.locator(".queue-item")).toHaveCount(1);
+  await page.getByRole("link", { name: "Skip to content" }).focus();
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/#history$/);
+  await expect(page.locator("#main-content")).toBeFocused();
+  await page.request.delete(`/api/jobs/${ids[0]}`, { data: {} });
+});
+
 test("permanent deletion requires explicit confirmation and only removes the selected trash item", async ({
   page,
 }) => {
@@ -347,7 +397,7 @@ test("phone layout stays within viewport and supports options", async ({
     .fill("https://example.com/mobile");
   await page.screenshot({
     path: "test-results/advanced-mobile.png",
-    fullPage: true,
+    fullPage: false,
   });
   await page.getByRole("button", { name: "Apply options" }).click();
   await expect(page.getByRole("dialog")).not.toBeVisible();

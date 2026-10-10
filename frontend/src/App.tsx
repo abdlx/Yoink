@@ -106,7 +106,14 @@ function Dashboard({ logout }: { logout: () => void }) {
   }, [view]);
   return (
     <div className="app-shell">
-      <a className="skip-link" href="#main-content">
+      <a
+        className="skip-link"
+        href="#main-content"
+        onClick={(e) => {
+          e.preventDefault();
+          document.getElementById("main-content")?.focus();
+        }}
+      >
         Skip to content
       </a>
       <aside className="sidebar">
@@ -194,7 +201,7 @@ function Dashboard({ logout }: { logout: () => void }) {
             </span>
           </div>
         </header>
-        <main className="content" id="main-content">
+        <main className="content" id="main-content" tabIndex={-1}>
           {jobs.error && (
             <div className="connection-error" role="alert">
               Can’t reach your server. Reconnecting…{" "}
